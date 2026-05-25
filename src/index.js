@@ -4,6 +4,7 @@ const config = require('./config');
 const { pool, closePool } = require('./database/pool');
 const { bot, setProcessMessage, setReady, stopBot } = require('./bot/telegram');
 const { registerCommands } = require('./bot/commands');
+const { chatWithTools, getResponseText } = require('./api/gemini');
 
 // Simple stats tracker
 const stats = {
@@ -21,26 +22,56 @@ function getStatus() {
   };
 }
 
-// Echo processor for Phase 2 (will be replaced in later phases)
+// Phase 3: In-memory conversation history (will evolve into STM in Phase 4)
+const conversations = new Map(); // sessionId -> Array<{role, parts}>
+
 async function processMessage(msg) {
   stats.messagesHandled++;
-  
+
   const text = msg.text;
-  
-  // Handle commands (they're already handled by bot.onText, but double-check)
+  const sessionId = `tg_${msg.from.id}`;
+
+  // Commands are handled by bot.onText
   if (text.startsWith('/')) {
-    return null; // Let command handlers deal with it
+    return null;
   }
-  
-  // Simple echo with personality for Phase 2
-  return `You said: "${text}"\n\n(Phase 2 echo — real brain coming in Phase 3)`;
+
+  // Get or create history
+  if (!conversations.has(sessionId)) {
+    conversations.set(sessionId, []);
+  }
+  const history = conversations.get(sessionId);
+
+  // Add user message
+  history.push({ role: 'user', parts: [{ text }] });
+
+  // Hard cap: keep last 20 turns to avoid token overflow until STM is built
+  while (history.length > 20) {
+    history.shift();
+  }
+
+  try {
+    // Call Gemini (sequential, no tools yet — those come in Phase 9)
+    const response = await chatWithTools(history);
+    const replyText = getResponseText(response);
+
+    // Store model response in history
+    if (replyText) {
+      history.push({ role: 'model', parts: [{ text: replyText }] });
+    }
+
+    return replyText || "I thought about that but came up blank.";
+  } catch (err) {
+    console.error('[Index] Gemini error:', err.message);
+    return "My brain's a bit foggy right now. Try again in a sec?";
+  }
 }
 
 // Register commands
 registerCommands({
   resetSession: (sessionId) => {
     console.log(`[Commands] Reset session ${sessionId}`);
-    // STM reset will be wired in Phase 4
+    conversations.delete(sessionId);
   },
   getStatus,
 });
@@ -48,7 +79,7 @@ registerCommands({
 // Set the message processor
 setProcessMessage(processMessage);
 
-// Express health check (lightweight, for monitoring)
+// Express health check
 const app = express();
 app.get('/health', (req, res) => {
   res.json({
@@ -89,6 +120,7 @@ process.on('SIGTERM', () => shutdown('SIGTERM'));
     setReady(true);
     console.log('[Bot] Ready and polling for messages...');
     console.log(`[Bot] Authorized user ID: ${config.ALLOWED_USER_ID}`);
+    console.log(`[Bot] LLM: ${config.LLM_MODEL} | Embedding: ${config.EMBEDDING_MODEL}`);
 
   } catch (err) {
     console.error('[Startup] Failed:', err.message);

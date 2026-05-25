@@ -25,25 +25,29 @@ CREATE TABLE IF NOT EXISTS diary_entries (
     created_at TIMESTAMP DEFAULT NOW()
 );
 
--- 3. Vector Memories: LTM (768 dims for Gemini embedding-004)
+-- 3. Vector Memories: LTM (3072 dims for gemini-embedding-2)
+-- Using halfvec: supports up to 4000 dims, 50% less RAM than vector
 -- Only create if pgvector type is available
 DO $$
 BEGIN
-    IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'vector') THEN
+    IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'halfvec') THEN
         CREATE TABLE IF NOT EXISTS vector_memories (
             id SERIAL PRIMARY KEY,
             user_id BIGINT NOT NULL,
             content TEXT NOT NULL,
-            embedding VECTOR(768),
+            embedding HALFVEC(3072),
             source TEXT CHECK (source IN ('message', 'diary', 'forced', 'reflection')),
             source_id INT,
             importance FLOAT DEFAULT 0.5,
             created_at TIMESTAMP DEFAULT NOW()
         );
         
-        CREATE INDEX IF NOT EXISTS idx_vector_memories ON vector_memories USING ivfflat (embedding vector_cosine_ops) WITH (lists = 10);
+        -- hnsw on halfvec supports 3072 dims (max 4000)
+        CREATE INDEX IF NOT EXISTS idx_vector_memories 
+        ON vector_memories 
+        USING hnsw (embedding halfvec_cosine_ops);
     ELSE
-        RAISE NOTICE 'pgvector extension not available, skipping vector_memories table';
+        RAISE NOTICE 'pgvector extension not available or halfvec unsupported, skipping vector_memories table';
     END IF;
 END $$;
 
