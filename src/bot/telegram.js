@@ -51,7 +51,10 @@ bot.on('message', async (msg) => {
   // Process sequentially
   try {
     const reply = await processMessageFn(msg);
-    await bot.sendMessage(msg.chat.id, reply);
+    // CRITICAL FIX: Don't send null/undefined (commands handle their own replies)
+    if (reply !== null && reply !== undefined) {
+      await bot.sendMessage(msg.chat.id, reply);
+    }
   } catch (err) {
     console.error('[Telegram] Error processing message:', err);
     await bot.sendMessage(msg.chat.id, "My circuits got tangled. Try again?");
