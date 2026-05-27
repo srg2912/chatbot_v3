@@ -1,4 +1,4 @@
-const { chatWithTools, getResponseText, getFunctionCalls } = require('../api/gemini');
+const { chatWithTools, getResponseText, getFunctionCalls } = require('../api/llm');
 const { executeTool } = require('./executor');
 const { tools } = require('./toolSchemas');
 const config = require('../config');
@@ -9,56 +9,42 @@ async function runAgenticLoop(history) {
   const currentHistory = [...history]; // Clone the history array
 
   while (iteration < config.MAX_TOOL_ITERATIONS) {
-    // 1. Call Gemini (ONE API call)
     console.log(`[Agent] Loop iteration ${iteration + 1}/${config.MAX_TOOL_ITERATIONS}...`);
-    const response = await chatWithTools(currentHistory, tools);
     
-    const text = getResponseText(response);
-    const functionCalls = getFunctionCalls(response);
+    // 1. Call LLM
+    const responseMessage = await chatWithTools(currentHistory, tools);
+    const text = getResponseText(responseMessage);
+    const functionCalls = getFunctionCalls(responseMessage);
 
-    // 2. If no tools are called, we have our final text!
-    if (text && (!functionCalls || functionCalls.length === 0)) {
+    // 2. No tools called = final answer
+    if (!functionCalls || functionCalls.length === 0) {
       finalText = text;
       break;
     }
 
-    // 3. If tools are called, execute them SEQUENTIALLY
-    if (functionCalls && functionCalls.length > 0) {
-      // Add the model's function call to history
-      currentHistory.push({
-        role: 'model',
-        parts: functionCalls.map(fc => ({ functionCall: fc }))
-      });
+    // 3. Tools called! Add the assistant's request to history
+    currentHistory.push(responseMessage);
 
-      const toolResults = [];
+    // Execute sequentially
+    for (const call of functionCalls) {
+      let args = {};
+      try { args = JSON.parse(call.function.arguments); } catch (e) {}
+
+      // executeTool is from executor.js (same as the one you wrote previously)
+      const result = await executeTool({ name: call.function.name, args });
       
-      // Strict sequential execution (No Promise.all)
-      for (const call of functionCalls) {
-        const result = await executeTool(call);
-        
-        toolResults.push({
-          functionResponse: {
-            name: call.name,
-            response: { result }
-          }
-        });
-      }
-
-      // Add the tool results back to history as the 'user' (per Gemini spec)
+      // Add the tool result to history
       currentHistory.push({
-        role: 'user',
-        parts: toolResults
+        role: 'tool',
+        tool_call_id: call.id,
+        content: String(result)
       });
     }
 
     iteration++;
   }
 
-  // Fallback if we hit the iteration limit
-  if (!finalText) {
-    finalText = "I was thinking so hard about that, I got a little stuck. What were we talking about again?";
-  }
-
+  if (!finalText) finalText = "I was thinking so hard about that, I got a little stuck. What were we talking about again?";
   return finalText;
 }
 

@@ -1,5 +1,5 @@
 const { pool } = require('../database/pool');
-const { chatWithTools, getResponseText } = require('../api/gemini');
+const { chatWithTools, getResponseText } = require('../api/llm');
 const activeGenerationLocks = new Set();
 
 const DIARY_TRIGGER_MESSAGES = 20; // Every 20 messages total (user + model)
@@ -77,8 +77,7 @@ async function summarizeMessages(messages, userId) {
   const prompt = [
     {
       role: 'user',
-      parts: [{
-        text: `Summarize the following conversation transcript into a diary entry. Extract key facts, note the mood/energy level, and keep it concise (3-5 sentences).
+      content: `Summarize the following conversation transcript into a diary entry. Extract key facts, note the mood/energy level, and keep it concise (3-5 sentences).
 
 Return ONLY a JSON object with this exact structure. Do not wrap the JSON in Markdown code blocks:
 {
@@ -90,7 +89,6 @@ Return ONLY a JSON object with this exact structure. Do not wrap the JSON in Mar
 
 Transcript:
 ${transcript}`
-      }]
     }
   ];
 

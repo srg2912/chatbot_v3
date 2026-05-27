@@ -1,5 +1,5 @@
 const { pool } = require('../database/pool');
-const { embedText } = require('../api/gemini');
+const { embedText } = require('../api/llm');
 
 /**
  * Add a new memory to Long Term Memory (LTM)

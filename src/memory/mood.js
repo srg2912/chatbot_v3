@@ -1,5 +1,5 @@
 const { pool } = require('../database/pool');
-const { chatWithTools, getResponseText } = require('../api/gemini');
+const { chatWithTools, getResponseText } = require('../api/llm');
 
 const MOOD_CHECK_INTERVAL = 10; // Check every 4 messages
 
@@ -37,7 +37,7 @@ Do not wrap the JSON in Markdown code blocks.
 Transcript:
 ${transcript}`;
 
-  const history = [{ role: 'user', parts: [{ text: prompt }] }];
+  const history = [{ role: 'user', content: prompt }];
 
   try {
     const response = await chatWithTools(history);

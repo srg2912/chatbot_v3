@@ -4,7 +4,7 @@ const config = require('./config');
 const { pool, closePool } = require('./database/pool');
 const { bot, setProcessMessage, setReady, stopBot } = require('./bot/telegram');
 const { registerCommands } = require('./bot/commands');
-const { chatWithTools, getResponseText } = require('./api/gemini');
+const { chatWithTools, getResponseText } = require('./api/llm');
 const { addMessage, getMessages, getMessageCount, resetSession, popLastMessage, persistMessage, MAX_STM_MESSAGES } = require('./memory/stm');
 const { checkAndGenerate, getRecentDiaries } = require('./memory/mtm');
 const { estimateTokens } = require('./utils/tokenizer');
@@ -44,11 +44,12 @@ function truncateForTelegram(text, maxLen = TELEGRAM_MAX_LENGTH) {
   return text.substring(0, maxLen - 20) + '...\n\n_(message truncated)_';
 }
 
-// Convert STM messages to Gemini SDK format
-function toGeminiHistory(messages) {
+// Convert STM messages to OpenAI SDK format
+function toOpenAiHistory(messages) {
   return messages.map(m => ({
-    role: m.role,
-    parts: [{ text: m.content }],
+    // Map our DB's 'model' to OpenAI's 'assistant'
+    role: m.role === 'model' ? 'assistant' : m.role,
+    content: m.content,
   }));
 }
 
@@ -102,19 +103,17 @@ async function processMessage(msg) {
   const stmMessages = getMessages(sessionId);
   const recentDiaries = await getRecentDiaries(msg.from.id, 5);
 
-  const systemPrompt = buildSystemPrompt(recentDiaries);
-  const geminiHistory = [
-    { role: 'user', parts: [{ text: systemPrompt }] },
-    { role: 'model', parts: [{ text: 'Got it. Ready to chat.' }] },
-    ...toGeminiHistory(stmMessages),
+const systemPrompt = buildSystemPrompt(recentDiaries);
+  const openAiHistory = [
+    { role: 'system', content: systemPrompt },
+    { role: 'assistant', content: 'Got it. Ready to chat.' },
+    ...toOpenAiHistory(stmMessages),
   ];
-
-  // 3. Retry Gemini up to 3 times
+  // 3. Retry LLM up to 3 times
   let replyText = null;
-
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      const response = await chatWithTools(geminiHistory);
+      const response = await chatWithTools(openAiHistory); // Use the new variable
       replyText = getResponseText(response);
       break;
     } catch (err) {

@@ -1,5 +1,5 @@
 const { pool } = require('../database/pool');
-const { chatWithTools, getResponseText } = require('../api/gemini');
+const { chatWithTools, getResponseText } = require('../api/llm');
 
 const VALID_CATEGORIES = ['preference', 'biography', 'goal', 'boundary', 'relationship', 'routine'];
 
@@ -20,7 +20,7 @@ If no permanent facts are found, return an empty array: []
 Text to analyze:
 "${text}"`;
 
-  const history = [{ role: 'user', parts: [{ text: prompt }] }];
+  const history = [{ role: 'user', content: prompt }];
   
   // 1. Call Gemini to extract facts
   const response = await chatWithTools(history);

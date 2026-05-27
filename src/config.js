@@ -8,15 +8,17 @@ const databaseUrl = process.env.DATABASE_URL ||
 const envSchema = z.object({
   PORT: z.string().default('3000').transform(Number),
   GOOGLE_API: z.string().startsWith('AIza'),
+  EXA_API: z.string().min(10),
+  LLM_API: z.string().min(1),             // NEW
+  LLM_ENDPOINT: z.string().url(),         // NEW
   LLM_MODEL: z.string().min(1),
   EMBEDDING_MODEL: z.string().min(1),
   BOT_TOKEN: z.string().regex(/^\d+:[A-Za-z0-9_-]+$/),
   ALLOWED_USER_ID: z.string().regex(/^\d+$/).transform(Number),
-  EXA_API: z.string().min(10),  // UUID format, e.g. 67656c70-****-****-****-************
   DATABASE_URL: z.string().startsWith('postgresql://'),
   WORKSPACE_DIR: z.string().min(1),
   MAX_TOOL_ITERATIONS: z.string().default('3').transform(Number),
-  PROACTIVE_COOLDOWN_HOURS: z.string().default('6').transform(Number)
+  PROACTIVE_COOLDOWN_HOURS: z.string().default('3').transform(Number)
 });
 
 // Inject constructed DATABASE_URL before parsing
