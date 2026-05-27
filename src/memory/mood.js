@@ -1,7 +1,7 @@
 const { pool } = require('../database/pool');
 const { chatWithTools, getResponseText } = require('../api/gemini');
 
-const MOOD_CHECK_INTERVAL = 4; // Check every 4 messages
+const MOOD_CHECK_INTERVAL = 10; // Check every 4 messages
 
 /**
  * Checks if it's time to detect the mood based on message count in this session.
