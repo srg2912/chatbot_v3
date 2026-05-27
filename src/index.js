@@ -1,4 +1,5 @@
 require('dotenv').config();
+require('./jobs/nightly');
 const express = require('express');
 const config = require('./config');
 const { pool, closePool } = require('./database/pool');

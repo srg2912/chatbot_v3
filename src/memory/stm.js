@@ -54,6 +54,15 @@ async function persistMessage(db, msg) {
   );
 }
 
+async function cleanupOldMessages(userId) {
+  // Delete raw messages older than 14 days (since they are already summarized in diaries)
+  const res = await pool.query(
+    `DELETE FROM messages WHERE user_id = $1 AND created_at < NOW() - INTERVAL '14 days'`,
+    [userId]
+  );
+  return res.rowCount;
+}
+
 module.exports = {
   addMessage,
   getMessages,
@@ -61,6 +70,7 @@ module.exports = {
   resetSession,
   popLastMessage,
   persistMessage,
+  cleanupOldMessages,
   MAX_STM_MESSAGES,
   // Exposed for tests only
   _sessions: sessions,

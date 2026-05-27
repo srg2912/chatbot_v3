@@ -54,7 +54,23 @@ async function searchMemories(userId, queryText, limit = 5) {
   return result.rows;
 }
 
+async function embedUnprocessedDiaries(userId) {
+  // Find diaries that haven't been saved to vector_memories yet
+  const res = await pool.query(
+    `SELECT id, summary FROM diary_entries 
+     WHERE user_id = $1 AND id NOT IN (SELECT source_id FROM vector_memories WHERE source = 'diary' AND user_id = $1)`,
+    [userId]
+  );
+  
+  // SEQUENTIALLY embed them to avoid API rate limits
+  for (const row of res.rows) {
+    await module.exports.addMemory(userId, row.summary, 'diary', row.id, 0.7);
+  }
+  return res.rows.length;
+}
+
 module.exports = {
   addMemory,
-  searchMemories
+  searchMemories,
+  embedUnprocessedDiaries
 };

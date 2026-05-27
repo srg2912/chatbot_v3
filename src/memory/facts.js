@@ -77,8 +77,25 @@ async function getActiveFacts(userId) {
   return result.rows;
 }
 
+async function decayConfidence(userId) {
+  // 1. Reduce confidence by 0.05 for facts older than 7 days
+  await pool.query(
+    `UPDATE user_facts SET confidence = GREATEST(0, confidence - 0.05) 
+     WHERE user_id = $1 AND last_mentioned < NOW() - INTERVAL '7 days' AND is_still_true = true`,
+    [userId]
+  );
+  // 2. Mark facts as false if confidence drops below 0.3
+  await pool.query(
+    `UPDATE user_facts SET is_still_true = false 
+     WHERE user_id = $1 AND confidence < 0.3`,
+    [userId]
+  );
+}
+// Don't forget to add decayConfidence to your module.exports!
+
 module.exports = {
   extractAndSaveFacts,
   getActiveFacts,
+  decayConfidence,
   VALID_CATEGORIES
 };
