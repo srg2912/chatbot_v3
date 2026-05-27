@@ -6,7 +6,9 @@ const { pool } = require('../database/pool');
 // OpenAI client for chat
 const openai = new OpenAI({
   apiKey: config.LLM_API,
-  baseURL: config.LLM_ENDPOINT
+  baseURL: config.LLM_ENDPOINT,
+  maxRetries: 3,       // Automatically retry transient 5xx or 429 errors
+  timeout: 25000       // Kill the request after 25 seconds and try again
 });
 
 // Google client for embeddings

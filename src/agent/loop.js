@@ -3,37 +3,34 @@ const { executeTool } = require('./executor');
 const { tools } = require('./toolSchemas');
 const config = require('../config');
 
-async function runAgenticLoop(history) {
+// ADD toolsEnabled parameter (default true)
+async function runAgenticLoop(history, toolsEnabled = true) {
   let iteration = 0;
   let finalText = null;
-  const currentHistory = [...history]; // Clone the history array
+  const currentHistory = [...history];
 
   while (iteration < config.MAX_TOOL_ITERATIONS) {
     console.log(`[Agent] Loop iteration ${iteration + 1}/${config.MAX_TOOL_ITERATIONS}...`);
     
-    // 1. Call LLM
-    const responseMessage = await chatWithTools(currentHistory, tools);
+    // Pass tools only if enabled
+    const responseMessage = await chatWithTools(currentHistory, toolsEnabled ? tools : null);
+    
     const text = getResponseText(responseMessage);
     const functionCalls = getFunctionCalls(responseMessage);
 
-    // 2. No tools called = final answer
     if (!functionCalls || functionCalls.length === 0) {
       finalText = text;
       break;
     }
 
-    // 3. Tools called! Add the assistant's request to history
     currentHistory.push(responseMessage);
 
-    // Execute sequentially
     for (const call of functionCalls) {
       let args = {};
       try { args = JSON.parse(call.function.arguments); } catch (e) {}
 
-      // executeTool is from executor.js (same as the one you wrote previously)
       const result = await executeTool({ name: call.function.name, args });
       
-      // Add the tool result to history
       currentHistory.push({
         role: 'tool',
         tool_call_id: call.id,
