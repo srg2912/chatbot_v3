@@ -9,6 +9,7 @@
     "test:phase3": "node test_phase3.js",
     "test:phase4": "node test_phase4.js",
     "test:phase5": "node test_phase5.js",
+    "test:phase6": "node test_phase6.js",
     "start": "node src/index.js"
   },
   "dependencies": {
