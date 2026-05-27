@@ -1,38 +1,33 @@
 const { pool } = require('../database/pool');
 
+const MAX_STM_MESSAGES = 20; // Hard FIFO limit
+
 // In-memory hot storage: key = session_id, value = Array<{role, content, tokens, created_at}>
 const sessions = new Map();
-const MAX_STM_TOKENS = 6000;
 
 function addMessage(sessionId, message) {
   if (!sessions.has(sessionId)) sessions.set(sessionId, []);
   const session = sessions.get(sessionId);
   session.push(message);
 
-  // Token-aware truncation: drop oldest until under budget
-  let total = session.reduce((sum, m) => sum + (m.tokens || 0), 0);
-  while (total > MAX_STM_TOKENS && session.length > 1) {
-    const removed = session.shift();
-    total -= (removed.tokens || 0);
+  // FIFO: drop oldest if over limit
+  while (session.length > MAX_STM_MESSAGES) {
+    session.shift();
   }
 }
 
 /**
- * Get messages fitting within tokenBudget (newest first, returned chronologically)
+ * Get all messages in STM (up to MAX_STM_MESSAGES, chronologically ordered)
  */
-function getMessages(sessionId, tokenBudget) {
-  const session = sessions.get(sessionId) || [];
-  const result = [];
-  let used = 0;
+function getMessages(sessionId) {
+  return sessions.get(sessionId) || [];
+}
 
-  for (let i = session.length - 1; i >= 0; i--) {
-    const t = session[i].tokens || 0;
-    if (used + t > tokenBudget) break;
-    used += t;
-    result.unshift(session[i]);
-  }
-
-  return result;
+/**
+ * Get message count in STM
+ */
+function getMessageCount(sessionId) {
+  return (sessions.get(sessionId) || []).length;
 }
 
 function resetSession(sessionId) {
@@ -62,9 +57,11 @@ async function persistMessage(db, msg) {
 module.exports = {
   addMessage,
   getMessages,
+  getMessageCount,
   resetSession,
   popLastMessage,
   persistMessage,
+  MAX_STM_MESSAGES,
   // Exposed for tests only
   _sessions: sessions,
 };

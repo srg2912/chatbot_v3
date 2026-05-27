@@ -1,6 +1,9 @@
 const TelegramBot = require('node-telegram-bot-api');
 const config = require('../config');
 
+const messageQueue = [];
+let isProcessingQueue = false;
+
 const bot = new TelegramBot(config.BOT_TOKEN, { polling: true });
 
 // Rate limiter: simple in-memory sliding window
@@ -18,17 +21,35 @@ function setReady(value) {
   isReady = value;
 }
 
-// Single-user gate + rate limiting
-bot.on('message', async (msg) => {
-  // HARD GATE: Only ALLOWED_USER_ID
-  if (msg.from.id !== config.ALLOWED_USER_ID) {
-    return; // Silent ignore
+// Async queue processor
+async function processQueue() {
+  if (isProcessingQueue || messageQueue.length === 0) return;
+  isProcessingQueue = true;
+
+  while (messageQueue.length > 0) {
+    const msg = messageQueue.shift();
+    
+    // Typing indicator inside the queue to show active processing
+    await bot.sendChatAction(msg.chat.id, 'typing');
+    
+    try {
+      const reply = await processMessageFn(msg);
+      if (reply !== null && reply !== undefined) {
+        await bot.sendMessage(msg.chat.id, reply);
+      }
+    } catch (err) {
+      console.error('[Telegram] Error processing message:', err);
+      await bot.sendMessage(msg.chat.id, "My circuits got tangled. Try again?");
+    }
   }
+  
+  isProcessingQueue = false;
+}
 
-  // Ignore non-text messages for now
-  if (!msg.text) return;
+// Modify the bot.on('message') handler
+bot.on('message', async (msg) => {
+  if (msg.from.id !== config.ALLOWED_USER_ID || !msg.text) return;
 
-  // Rate limit: max 20 per minute
   const now = Date.now();
   const window = userWindows.get(msg.from.id) || [];
   const recent = window.filter(t => now - t < 60000);
@@ -39,26 +60,14 @@ bot.on('message', async (msg) => {
   recent.push(now);
   userWindows.set(msg.from.id, recent);
 
-  // Bot not ready yet
   if (!isReady) {
     await bot.sendMessage(msg.chat.id, "Booting up... one sec.");
     return;
   }
 
-  // Typing indicator
-  await bot.sendChatAction(msg.chat.id, 'typing');
-
-  // Process sequentially
-  try {
-    const reply = await processMessageFn(msg);
-    // CRITICAL FIX: Don't send null/undefined (commands handle their own replies)
-    if (reply !== null && reply !== undefined) {
-      await bot.sendMessage(msg.chat.id, reply);
-    }
-  } catch (err) {
-    console.error('[Telegram] Error processing message:', err);
-    await bot.sendMessage(msg.chat.id, "My circuits got tangled. Try again?");
-  }
+  // PUSH TO QUEUE INSTEAD OF PROCESSING DIRECTLY
+  messageQueue.push(msg);
+  processQueue();
 });
 
 // Handle polling errors
