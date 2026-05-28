@@ -4,19 +4,6 @@
   "description": "Pi 3 B+ optimized AI companion",
   "main": "src/index.js",
   "scripts": {
-    "test:phase1": "node test_phase1.js",
-    "test:phase2": "node test_phase2.js",
-    "test:phase3": "node test_phase3.js",
-    "test:phase4": "node test_phase4.js",
-    "test:phase5": "node test_phase5.js",
-    "test:phase6": "node test_phase6.js",
-    "test:phase7": "node test_phase7.js",
-    "test:phase8": "node test_phase8.js",
-    "test:phase9": "node test_phase9.js",
-    "test:phase10": "node test_phase10.js",
-    "test:phase11": "node test_phase11.js",
-    "test:phase12": "node test_phase12.js",
-    "test:phase15": "node test_phase15.js",
     "start": "node src/index.js"
   },
   "dependencies": {
