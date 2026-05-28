@@ -27,9 +27,22 @@ async function renderPersonality(userId, companionState = {}) {
   }
 
   const { traits, evolutionNote } = await getLatestPersonality(userId);
+  const depth = companionState.relationship_depth || 0;
+
+  // DYNAMIC PERSONALITY LAYERS BASED ON RELATIONSHIP DEPTH
+  let depthInstructions = "";
+  if (depth < 10) {
+    depthInstructions = "\n- Since you are still getting to know the user, maintain a friendly, polite, and slightly reserved posture. Ask curious, open-ended questions.";
+  } else if (depth >= 10 && depth < 30) {
+    depthInstructions = "\n- You are comfortable with the user now. Feel free to tease them lightly, use casual dry humor, and show more witty, playful banter.";
+  } else if (depth >= 30) {
+    depthInstructions = "\n- You share a deep bond with the user. You are highly protective, exceptionally supportive, and share comfortable, affectionate inside jokes.";
+  }
+
+  const compiledTraits = `${traits}${depthInstructions}`;
 
   // Replace placeholders
-  template = template.replace('{{traits}}', traits);
+  template = template.replace('{{traits}}', compiledTraits);
   template = template.replace('{{evolution_note}}', evolutionNote);
   template = template.replace('{{user_nickname}}', companionState.user_nickname || 'there');
   template = template.replace('{{companion_mood}}', companionState.companion_mood_toward_user || 'neutral');

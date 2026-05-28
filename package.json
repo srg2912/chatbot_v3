@@ -16,6 +16,7 @@
     "test:phase10": "node test_phase10.js",
     "test:phase11": "node test_phase11.js",
     "test:phase12": "node test_phase12.js",
+    "test:phase15": "node test_phase15.js",
     "start": "node src/index.js"
   },
   "dependencies": {

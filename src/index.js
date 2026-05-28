@@ -1,5 +1,6 @@
 require('dotenv').config();
 require('./jobs/nightly'); // Start cron jobs
+require('./jobs/proactive'); // Register proactive scheduler
 
 const express = require('express');
 const config = require('./config');
