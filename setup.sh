@@ -12,7 +12,7 @@ fi
 # 2. Check for .env file
 if [ ! -f ".env" ]; then
   echo "✗ Error: .env file not found in root directory."
-  echo "  Please copy .env.example to .env and configure your keys before running this script."
+  echo "  Please copy dummydotenv.txt to .env and configure your keys before running this script."
   exit 1
 fi
 
@@ -45,13 +45,12 @@ sudo apt install -y nodejs git build-essential
 
 # 6. Install PostgreSQL and PostgreSQL Server Development headers
 echo "Installing PostgreSQL and development headers..."
-# ADDED postgresql-server-dev-all to allow pgvector to compile successfully!
 sudo apt install -y postgresql postgresql-contrib libpq-dev postgresql-server-dev-all
 
-# 7. Compile and install pgvector from source (to guarantee halfvec support)
+# 7. Compile and install pgvector from source (UPGRADED to v0.7.0 to support halfvec)
 echo "Compiling and installing pgvector..."
 rm -rf /tmp/pgvector
-git clone --branch v0.5.1 https://github.com/pgvector/pgvector.git /tmp/pgvector
+git clone --branch v0.7.0 https://github.com/pgvector/pgvector.git /tmp/pgvector
 cd /tmp/pgvector
 make
 sudo make install
@@ -94,6 +93,8 @@ sudo -u postgres psql -c "CREATE DATABASE $PGDATABASE OWNER $PGUSER;" || true
 
 # 10. Enable pgvector and grant Schema/Public usage permissions
 echo "Enabling pgvector extension and granting schema rights..."
+# Drop old extension version first to cleanly register the compiled v0.7.0 build
+sudo -u postgres psql -d $PGDATABASE -c "DROP EXTENSION IF EXISTS vector CASCADE;"
 sudo -u postgres psql -d $PGDATABASE -c "CREATE EXTENSION IF NOT EXISTS vector;"
 sudo -u postgres psql -d $PGDATABASE -c "GRANT USAGE ON SCHEMA public TO $PGUSER;"
 sudo -u postgres psql -d $PGDATABASE -c "GRANT ALL PRIVILEGES ON DATABASE $PGDATABASE TO $PGUSER;"
