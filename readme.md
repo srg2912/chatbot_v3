@@ -21,6 +21,7 @@ The companion uses **strictly sequential orchestration** to ensure its memory fo
 
 ## System Architecture
 
+```mermaid
 graph TD
     A[Telegram Bot Polling<br/>Auth Check: ALLOWED_USER_ID] --> B[Build Prompt<br/>STM/MT/LTM/Facts/Habits]
     B --> C[LLM Call <br/>OpenAI Compatible + Function Calling]
@@ -32,7 +33,7 @@ graph TD
     F --> G[LLM Call #2<br/>Re-prompt with result]
     G -->|Repeat max N times| C
     G --> E
-
+```
 
 ---
 
