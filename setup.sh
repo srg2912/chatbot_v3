@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "=== Companion Autodeploy Script for Pi 3 B+ ==="
+echo "=== Companion Autodeploy Script ==="
 
 # 1. Verify we are in the project root directory
 if [ ! -f "package.json" ]; then
@@ -129,7 +129,7 @@ echo ""
 echo "=================================================="
 echo "✓ SETUP COMPLETED SUCCESSFULLY!"
 echo "=================================================="
-echo "Kate is now running headless in the background."
+echo "The companion is now running headless in the background."
 echo ""
 echo "To monitor live logs: pm2 logs companion"
 echo "To check system health: curl http://localhost:3000/health"
