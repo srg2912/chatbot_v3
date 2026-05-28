@@ -12,7 +12,7 @@ fi
 # 2. Check for .env file
 if [ ! -f ".env" ]; then
   echo "✗ Error: .env file not found in root directory."
-  echo "  Please copy dummydotenv.txt to .env and configure your keys before running this script."
+  echo "  Please copy .env.example to .env and configure your keys before running this script."
   exit 1
 fi
 
@@ -38,14 +38,15 @@ echo "Database user to create: $PGUSER"
 echo "Updating system repositories..."
 sudo apt update && sudo apt upgrade -y
 
-# 5. Install Node.js 20 (LTS)
+# 5. Install Node.js 20 (LTS) & build-essential
 echo "Installing Node.js 20..."
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt install -y nodejs git build-essential
 
-# 6. Install PostgreSQL
-echo "Installing PostgreSQL..."
-sudo apt install -y postgresql postgresql-contrib libpq-dev
+# 6. Install PostgreSQL and PostgreSQL Server Development headers
+echo "Installing PostgreSQL and development headers..."
+# ADDED postgresql-server-dev-all to allow pgvector to compile successfully!
+sudo apt install -y postgresql postgresql-contrib libpq-dev postgresql-server-dev-all
 
 # 7. Compile and install pgvector from source (to guarantee halfvec support)
 echo "Compiling and installing pgvector..."
