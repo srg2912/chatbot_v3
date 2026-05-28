@@ -21,20 +21,24 @@ The companion uses **strictly sequential orchestration** to ensure its memory fo
 
 ## System Architecture
 
-[Telegram Bot Polling] │ ▼ (ONE message at a time) [Auth Check: ALLOWED_USER_ID]
-│ ▼ [Build Prompt: STM(Map) → MTM(PSQL) → LTM(PSQL) → Facts → Habits] │ ▼ [LLM
-Call #1: OpenAI Compatible Endpoint with Function Calling] │ ├──► Text Response
-──► [Telegram] ──► [Store in STM + PSQL] │ └──► Tool Call(s) ──► [Execute ONE
-tool at a time (Sandboxed)] │ ├──► [LLM Call #2: Re-prompt with result] │ │ │
-└──► (Repeat max N times, sequentially) │ ▼ [Final Response] ──►
-[Telegram] ──► [Store in STM]
+graph TD
+    A[Telegram Bot Polling<br/>Auth Check: ALLOWED_USER_ID] --> B[Build Prompt<br/>STM/MT/LTM/Facts/Habits]
+    B --> C[LLM Call <br/>OpenAI Compatible + Function Calling]
+    C --> D{Output Type}
+    
+    D -->|Text Response| E[Telegram & Store in STM/PSQL]
+    D -->|Tool Call| F[Execute Tool - Sandboxed]
+    
+    F --> G[LLM Call #2<br/>Re-prompt with result]
+    G -->|Repeat max N times| C
+    G --> E
 
 
 ---
 
 ## Prerequisites
 
-*   **Hardware:** Raspberry Pi 3 Model B+ (1 GB RAM), 16GB MicroSD card.
+*   **Hardware:** Raspberry Pi 3 Model B+ (1 GB RAM), 16GB MicroSD card, or any better hardware.
 *   **OS:** Raspberry Pi OS Lite (64-bit) recommended.
 *   **APIs Required:**
     *   An OpenAI-compatible LLM Provider API Key and Base URL (e.g. NVIDIA NIM, Groq, DeepSeek).
