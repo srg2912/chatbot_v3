@@ -117,6 +117,6 @@ GUIDELINES:
 }
 
 // Check every hour on the hour
-cron.schedule('0 * * * *', checkAndSendProactiveMessage);
+cron.schedule('0 * * * *', () => checkAndSendProactiveMessage(false));
 
 module.exports = { checkAndSendProactiveMessage };
