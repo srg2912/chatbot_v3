@@ -1,4 +1,4 @@
-# Local AI Companion (Pi 3 B+ Optimized)
+# AI Companion (Telegram Chatbot V3)
 
 A resource-conscious, stateful, and highly contextual personal AI companion designed to run headless 24/7 on restricted hardware (optimized for Raspberry Pi 3 Model B+ with 1 GB RAM). 
 
